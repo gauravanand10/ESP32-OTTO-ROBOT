@@ -1,13 +1,13 @@
-# 🚗 ESP32-OTTO-ROBOT
+# 🤖 ESP32-OTTO-ROBOT
 
-> **A wireless ESP32 robotic robot controlled by an analog joystick, powered by UDP communication, and equipped with ultrasonic obstacle protection.**
+> **A wireless Otto Ninja robot controlled by an analog joystick using dual ESP32 boards, Wi-Fi/UDP communication, differential servo drive, and ultrasonic obstacle protection.**
 
 <p align="center">
 
 ![ESP32](https://img.shields.io/badge/ESP32-Microcontroller-blue?style=for-the-badge&logo=espressif)
 ![Arduino](https://img.shields.io/badge/Arduino-IDE-00979D?style=for-the-badge&logo=arduino)
 ![WiFi](https://img.shields.io/badge/Wi--Fi-UDP-orange?style=for-the-badge&logo=wifi)
-![Platform](https://img.shields.io/badge/Platform-Otto%20Ninja-lightgrey?style=for-the-badge)
+![Otto Ninja](https://img.shields.io/badge/Platform-Otto%20Ninja-lightgrey?style=for-the-badge)
 
 </p>
 
@@ -15,34 +15,37 @@
 
 ## 📌 Overview
 
-**ESP32-OTTO-BUGGY** is a wireless robotic buggy built around **two ESP32
-microcontrollers**.
+**ESP32-OTTO-ROBOT** is a wireless robotic system built around **two ESP32
+development boards** and a 3D-printed **Otto Ninja** platform.
 
-An analog joystick is used as the primary controller. The transmitter ESP32
-reads the joystick position, determines the required movement, and sends a
-compact command over **Wi-Fi using UDP**.
+The robot is currently controlled using an **analog joystick**. A dedicated
+ESP32 acts as the transmitter, reading the joystick position and converting
+it into movement commands. These commands are sent wirelessly to a second
+ESP32 through **Wi-Fi using UDP**.
 
-The receiver ESP32 interprets the command and drives two
-**continuous-rotation servo motors** using differential drive. An **HC-SR04
-ultrasonic sensor** provides forward obstacle detection and prevents the
-buggy from moving forward when an obstacle is too close.
+The receiver ESP32 is mounted on the robot and controls two
+**continuous-rotation servo motors** using differential drive. An
+**HC-SR04 ultrasonic sensor** provides forward obstacle detection and stops
+the robot when an obstacle is detected within the configured safety
+threshold.
 
-The mechanical platform is based on a **3D-printed Otto Ninja design**.
+> **Current implementation:** Analog joystick control only. EEG/EMG-based
+> control is not part of the current hardware or firmware.
 
 ---
 
 ## ✨ Features
 
-- 🎮 Analog joystick control
-- 📡 ESP32-to-ESP32 wireless communication
+- 🎮 Analog joystick-based control
+- 📡 Wireless ESP32-to-ESP32 communication
 - ⚡ UDP-based command transmission
 - 🚗 Forward and backward movement
 - ↩️ Left and right turning
 - 🛑 Stop control
-- 📏 Ultrasonic obstacle detection
+- 📏 HC-SR04 ultrasonic obstacle detection
 - 🖨️ 3D-printed Otto Ninja platform
-- 🔧 Two-ESP32 transmitter/receiver architecture
-- 💻 Arduino-compatible firmware
+- 🔧 Separate transmitter and receiver firmware
+- 💻 Arduino-compatible ESP32 firmware
 
 ---
 
@@ -55,7 +58,7 @@ The mechanical platform is based on a **3D-printed Otto Ninja design**.
                            │
                            ▼
                 ┌─────────────────────┐
-                │   ESP32 TRANSMITTER  │
+                │   ESP32 TRANSMITTER │
                 │                     │
                 │  Read Joystick      │
                 │  Direction Logic    │
@@ -79,18 +82,21 @@ The mechanical platform is based on a **3D-printed Otto Ninja design**.
                         │       │
                         └───┬───┘
                             ▼
-                      🤖 OTTO BUGGY
+                     🤖 OTTO NINJA
+                         ROBOT
                             ▲
                             │
-                       HC-SR04
-                  Obstacle Detection
+                         HC-SR04
+                    Obstacle Detection
 ```
 
 ---
 
 ## 🎮 Control Mapping
 
-| Joystick Input | Buggy Action |
+The analog joystick provides the movement input for the robot.
+
+| Joystick Input | Robot Action |
 |---|---|
 | ⬆️ Up | Forward |
 | ⬇️ Down | Backward |
@@ -98,14 +104,23 @@ The mechanical platform is based on a **3D-printed Otto Ninja design**.
 | ➡️ Right | Turn Right |
 | 🎯 Center | Stop |
 
-The joystick uses calibrated X/Y center values and a dead zone to prevent
-small analog fluctuations from generating unwanted movement commands.
+The transmitter uses calibrated joystick center values and a dead zone to
+prevent small analog fluctuations from causing unwanted movement.
+
+### Current Calibration
+
+```text
+Center X  : 3010
+Center Y  : 2840
+Dead Zone : 200
+```
 
 ---
 
 ## 📡 Wireless Communication
 
-The transmitter ESP32 operates as a Wi-Fi access point.
+The transmitter ESP32 creates a Wi-Fi access point and the receiver ESP32
+connects to it.
 
 ```text
 SSID      : ESP_BUGGY
@@ -113,23 +128,25 @@ Password  : 12345678
 UDP Port  : 4210
 ```
 
-The receiver ESP32 connects to this network and listens for incoming UDP
-commands.
+The transmitter sends the joystick-derived direction to the receiver using
+UDP packets.
 
-Example command:
+### Example Command
 
 ```text
-DIR:FORWARD,X:2500,Y:1200
+DIR:FORWARD,X:2500,Y:1200,BTN:1
 ```
 
-The receiver extracts the `DIR` field and maps it to the corresponding motor
-operation.
+The receiver extracts the `DIR` field and maps it to the corresponding
+servo movement.
 
 ---
 
 ## ⚙️ Differential Drive
 
-The two continuous-rotation servos are controlled independently.
+The robot uses two continuous-rotation servo motors for differential drive.
+
+Each servo controls one side of the robot.
 
 | Movement | Left Servo | Right Servo |
 |---|---:|---:|
@@ -139,14 +156,15 @@ The two continuous-rotation servos are controlled independently.
 | Right | 180 | 180 |
 | Stop | 90 | 90 |
 
-These values correspond to the current physical orientation of the servos
-in the prototype.
+These values correspond to the current physical orientation and working
+configuration of the two servos.
 
 ---
 
 ## 🚧 Ultrasonic Obstacle Protection
 
-An **HC-SR04 ultrasonic sensor** is connected to the receiver ESP32.
+An **HC-SR04 ultrasonic sensor** is mounted at the front of the Otto Ninja
+robot.
 
 The current forward obstacle threshold is:
 
@@ -154,43 +172,47 @@ The current forward obstacle threshold is:
 15 cm
 ```
 
-When the buggy is commanded to move forward and an obstacle is detected
-within this distance, the receiver stops both servos.
+When a `FORWARD` command is received:
 
 ```text
-             HC-SR04
-                │
-                ▼
-        Measure Distance
-                │
-                ▼
-        Distance ≤ 15 cm?
-           /          \
-         YES           NO
-          │             │
-          ▼             ▼
-        STOP         FORWARD
+              HC-SR04
+                  │
+                  ▼
+          Measure Distance
+                  │
+                  ▼
+          Distance ≤ 15 cm?
+             /          \
+           YES           NO
+            │             │
+            ▼             ▼
+       STOP SERVOS      FORWARD
 ```
+
+The current obstacle protection blocks **forward movement** when an obstacle
+is detected within 15 cm.
 
 ---
 
-## 🔌 Hardware
+
+## 📷 Hardware
+
+### Otto Ninja Robot
+
+The receiver ESP32, servo motors, and ultrasonic sensor are integrated with
+the 3D-printed Otto Ninja platform.
+
+![Otto Ninja Robot](images/otto-robot.jpeg)
+
 
 ### Transmitter
 
-The transmitter is built around an ESP32 and an analog joystick mounted on
-a perfboard.
+The transmitter consists of an ESP32 and an analog joystick mounted on a
+prototype/perfboard.
 
-<img width="3024" height="4032" alt="transmitter" src="https://github.com/user-attachments/assets/96ed95cb-248e-404f-b077-b8aec9f7f609" />
+![ESP32 Joystick Transmitter](images/transmitter.jpeg)
 
-### Buggy
-
-The buggy uses an ESP32 receiver, two continuous-rotation servo motors,
-and an HC-SR04 ultrasonic sensor mounted on the 3D-printed Otto Ninja
-platform.
-
-<img width="3024" height="4032" alt="buggy" src="https://github.com/user-attachments/assets/369a7c1c-11de-4c49-8bac-bc8ab309af64" />
-
+---
 
 ## 📍 Pin Configuration
 
@@ -198,58 +220,66 @@ platform.
 
 | Component | GPIO | Function |
 |---|---:|---|
-| Joystick VRx | 34 | X-axis |
-| Joystick VRy | 35 | Y-axis |
-| Joystick SW | 32 | Push button |
+| Joystick VRx | GPIO 34 | X-axis analog input |
+| Joystick VRy | GPIO 35 | Y-axis analog input |
+| Joystick SW | GPIO 32 | Push-button input |
 
 ### Receiver ESP32
 
 | Component | GPIO | Function |
 |---|---:|---|
-| Left Servo | 13 | Left motor signal |
-| Right Servo | 12 | Right motor signal |
-| HC-SR04 TRIG | 26 | Trigger |
-| HC-SR04 ECHO | 25 | Echo |
+| Left Servo Signal | GPIO 13 | Left servo control |
+| Right Servo Signal | GPIO 12 | Right servo control |
+| HC-SR04 TRIG | GPIO 26 | Ultrasonic trigger |
+| HC-SR04 ECHO | GPIO 25 | Ultrasonic echo |
 
-Detailed information is available in the [`hardware`](hardware/) directory.
+For complete hardware information, see:
+
+- [`hardware/components.md`](hardware/components.md)
+- [`hardware/pinout.md`](hardware/pinout.md)
+- [`hardware/wiring.md`](hardware/wiring.md)
 
 ---
 
 ## 💻 Firmware
 
-The firmware is separated into transmitter and receiver programs.
+The firmware is divided into two independent programs.
 
 ### Transmitter
 
-`firmware/transmitter/joystick_transmitter.ino`
+```text
+firmware/transmitter/joystick_transmitter.ino
+```
 
-Handles:
+The transmitter firmware:
 
-- Joystick acquisition
-- Calibration
-- Dead-zone processing
-- Direction determination
-- UDP packet generation
-- Wireless transmission
+- Reads joystick X/Y values
+- Applies calibration
+- Applies the dead zone
+- Determines the movement direction
+- Builds the UDP message
+- Sends the command wirelessly
 
 ### Receiver
 
-`firmware/receiver/buggy_receiver.ino`
+```text
+firmware/receiver/buggy_receiver.ino
+```
 
-Handles:
+The receiver firmware:
 
-- Wi-Fi connection
-- UDP packet reception
-- Direction extraction
-- Servo motor control
-- Ultrasonic distance measurement
-- Forward obstacle protection
+- Connects to the transmitter Wi-Fi network
+- Receives UDP packets
+- Extracts the movement command
+- Controls the left and right servos
+- Measures ultrasonic distance
+- Prevents forward movement when an obstacle is too close
 
 ---
 
-## 🖨️ 3D-Printed Platform
+## 🖨️ 3D-Printed Otto Ninja Platform
 
-The buggy is based on the **Otto Ninja** mechanical platform.
+The robot is built using the **Otto Ninja** 3D-printed mechanical platform.
 
 The available STL files are organized under:
 
@@ -257,44 +287,53 @@ The available STL files are organized under:
 3d-models/otto-ninja/
 ```
 
-The folder contains the 3D-printable mechanical components used for the
-platform.
+The folder contains the available mechanical parts required for the
+platform assembly, including body, head, legs, foot/wheel components,
+plates, lid, and ultrasonic sensor mounting parts.
 
 ---
 
 ## 📂 Repository Structure
 
 ```text
-ESP32-OTTO-BUGGY/
+ESP32-OTTO-ROBOT/
 │
-├── README.md
+├── 3d-models/
+│   └── otto-ninja/
+│       ├── Otto DIY_Ninja_BAND...
+│       ├── Otto DIY_Ninja_Foot...
+│       ├── Otto DIY_Ninja_Head...
+│       ├── Otto DIY_Ninja_INNERPLATE...
+│       ├── Otto DIY_Ninja_LEGS...
+│       ├── Otto DIY_Ninja_LID.stl
+│       ├── Otto DIY_Ninja_Leg Left...
+│       ├── Otto DIY_Ninja_Leg Right...
+│       └── Otto DIY_Ninja_PLATE...
 │
 ├── firmware/
-│   ├── transmitter/
-│   │   └── joystick_transmitter.ino
+│   ├── receiver/
+│   │   └── buggy_receiver.ino
 │   │
-│   └── receiver/
-│       └── buggy_receiver.ino
+│   └── transmitter/
+│       └── joystick_transmitter.ino
 │
 ├── hardware/
 │   ├── components.md
 │   ├── pinout.md
 │   └── wiring.md
 │
-├── 3d-models/
-│   └── otto-ninja/
-│       └── *.stl
+├── images/
+│   ├── otto-robot.jpeg
+│   └── transmitter.jpeg
 │
-└── images/
-    ├── transmitter.jpg
-    └── buggy.jpg
+└── README.md
 ```
 
 ---
 
 ## 🛠️ Setup
 
-### 1. Upload the transmitter firmware
+### 1. Upload the Transmitter Firmware
 
 Open:
 
@@ -302,15 +341,19 @@ Open:
 firmware/transmitter/joystick_transmitter.ino
 ```
 
-Upload it to the transmitter ESP32.
+Select the appropriate ESP32 board in Arduino IDE and upload the firmware to
+the transmitter ESP32.
 
-The ESP32 will create:
+The transmitter creates the Wi-Fi access point:
 
 ```text
-ESP_BUGGY
+SSID      : ESP_BUGGY
+Password  : 12345678
 ```
 
-### 2. Upload the receiver firmware
+---
+
+### 2. Upload the Receiver Firmware
 
 Open:
 
@@ -320,76 +363,121 @@ firmware/receiver/buggy_receiver.ino
 
 Upload it to the receiver ESP32.
 
-The receiver will connect to the transmitter's Wi-Fi network and listen on
-UDP port `4210`.
+The receiver connects to the transmitter's Wi-Fi network and listens for
+UDP packets on port `4210`.
 
-### 3. Connect the hardware
+---
 
-Follow the pin assignments and wiring documentation in:
+### 3. Connect the Hardware
+
+Connect the joystick, servo motors, and HC-SR04 according to the hardware
+documentation:
 
 ```text
 hardware/
+├── components.md
+├── pinout.md
+└── wiring.md
 ```
 
-### 4. Power the system
+---
 
-Power the transmitter and receiver and move the joystick to control the
-buggy.
+### 4. Power the System
+
+Power the transmitter and receiver.
+
+Once both ESP32 boards are connected, move the joystick to control the
+Otto Ninja robot.
 
 ---
 
-## ⚠️ Power & Wiring Notes
+## 🔌 Power & Wiring Notes
 
 - Do **not** power servo motors directly from ESP32 GPIO pins.
-- Use an appropriate external power supply for the servo motors.
-- Maintain a common ground between the ESP32 and servo power supply.
-- If the HC-SR04 is operated at 5 V, ensure that its ECHO signal is
-  appropriately level-shifted before connecting it to an ESP32 GPIO.
-- Verify servo orientation before running the buggy at full speed.
+- Use a suitable external power supply for the servo motors.
+- Connect the ESP32 ground and servo power-supply ground together.
+- If using a 5 V HC-SR04, do not connect its ECHO output directly to the
+  ESP32 GPIO.
+- Use an appropriate voltage divider or level shifter for the HC-SR04 ECHO
+  signal.
+- Verify servo direction with the robot lifted from the ground before
+  testing movement.
+- Ensure the external power supply can provide sufficient current for both
+  servo motors.
 
 ---
 
-## 🔮 Future Development
+## 🔄 Current Working Flow
 
-The current version uses an **analog joystick** as the control interface.
+```text
+🎮 Joystick
+     │
+     ▼
+ESP32 Transmitter
+     │
+     │ Wi-Fi / UDP
+     ▼
+ESP32 Receiver
+     │
+     ├───────────────┐
+     │               │
+     ▼               ▼
+Servo Control     HC-SR04
+     │          Obstacle Check
+     │               │
+     └───────┬───────┘
+             ▼
+       🤖 Otto Robot
+```
 
-Planned possibilities include:
+---
+
+## 🚀 Future Scope
+
+The current implementation uses an **analog joystick** as the control
+interface.
+
+Possible future improvements include:
 
 - [ ] Improved obstacle avoidance
 - [ ] Real-time telemetry
 - [ ] Battery monitoring
 - [ ] Additional sensors
-- [ ] More advanced motion control
+- [ ] Improved motion control
 - [ ] Alternative human-machine interfaces
 - [ ] Experimental EEG/EMG-based control
 
-> **Note:** EEG/EMG control is future work and is not part of the current
-> implementation.
+> EEG/EMG control is a possible future development and is **not part of the
+> current implementation**.
 
 ---
 
-## 📸 Project Status
+## 📊 Project Status
 
 **Current Status: Working Prototype ✅**
 
-The current prototype successfully demonstrates:
+The current prototype demonstrates:
 
 ```text
-Joystick
-   ↓
-ESP32
-   ↓
+Analog Joystick
+      ↓
+ESP32 Transmitter
+      ↓
 Wi-Fi / UDP
-   ↓
-ESP32
-   ↓
-Servo Motors
-   ↓
-Otto Ninja Buggy
+      ↓
+ESP32 Receiver
+      ↓
+Dual Servo Drive
+      ↓
+Otto Ninja Robot
 ```
+
+with forward ultrasonic obstacle protection.
 
 ---
 
 <p align="center">
-  Built with ESP32 • Arduino • Wi-Fi • UDP • Servo Control • Ultrasonic Sensing
+
+**ESP32 • Arduino • Wi-Fi • UDP • Joystick Control • Servo Drive • Ultrasonic Sensing**
+
 </p>
