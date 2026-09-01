@@ -1,6 +1,6 @@
-# 🚗 ESP32-OTTO-BUGGY
+# 🚗 ESP32-OTTO-ROBOT
 
-> **A wireless ESP32 robotic buggy controlled by an analog joystick, powered by UDP communication, and equipped with ultrasonic obstacle protection.**
+> **A wireless ESP32 robotic robot controlled by an analog joystick, powered by UDP communication, and equipped with ultrasonic obstacle protection.**
 
 <p align="center">
 
